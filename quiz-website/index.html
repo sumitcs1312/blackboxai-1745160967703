@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Quiz Generator</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-4">
+  <header class="w-full max-w-4xl mb-8">
+    <h1 class="text-4xl font-bold text-center text-indigo-700 mb-2">AI Quiz Generator</h1>
+    <p class="text-center text-gray-600">Generate and take quizzes on any topic. Create your own quizzes too!</p>
+  </header>
+
+  <main class="w-full max-w-4xl bg-white rounded-lg shadow p-6">
+    <section id="generate-quiz-section" class="mb-8">
+      <h2 class="text-2xl font-semibold mb-4">Generate a Quiz</h2>
+      <div class="flex flex-col sm:flex-row gap-4 mb-4">
+        <input
+          type="text"
+          id="topic-input"
+          placeholder="Enter a topic (e.g., History, Science)"
+          class="flex-grow border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        <button
+          id="generate-btn"
+          class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700 transition"
+        >
+          Generate Quiz
+        </button>
+      </div>
+      <p id="generate-status" class="text-sm text-gray-500"></p>
+    </section>
+
+    <section id="quiz-section" class="hidden">
+      <h2 class="text-2xl font-semibold mb-4">Quiz</h2>
+      <form id="quiz-form" class="space-y-6">
+        <!-- Quiz questions will be inserted here -->
+      </form>
+      <div class="mt-4 flex justify-between">
+        <button
+          id="submit-quiz-btn"
+          class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition"
+          type="button"
+        >
+          Submit Quiz
+        </button>
+        <button
+          id="restart-quiz-btn"
+          class="bg-gray-400 text-white px-6 py-2 rounded hover:bg-gray-500 transition"
+          type="button"
+        >
+          Restart
+        </button>
+      </div>
+      <div id="quiz-result" class="mt-6 text-lg font-semibold text-indigo-700"></div>
+    </section>
+
+    <section id="create-quiz-section" class="mt-12">
+      <h2 class="text-2xl font-semibold mb-4">Create Your Own Quiz</h2>
+      <form id="create-quiz-form" class="space-y-4">
+        <input
+          type="text"
+          id="custom-quiz-title"
+          placeholder="Quiz Title"
+          class="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          required
+        />
+        <div id="custom-questions-container" class="space-y-4"></div>
+        <button
+          id="add-question-btn"
+          class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition"
+          type="button"
+        >
+          Add Question
+        </button>
+        <button
+          id="save-quiz-btn"
+          class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition"
+          type="submit"
+        >
+          Save Quiz
+        </button>
+      </form>
+      <p id="save-status" class="mt-2 text-sm text-green-600"></p>
+    </section>
+
+    <section id="user-quizzes-section" class="mt-12">
+      <h2 class="text-2xl font-semibold mb-4">Your Saved Quizzes</h2>
+      <ul id="user-quizzes-list" class="list-disc list-inside text-indigo-700 space-y-2"></ul>
+    </section>
+  </main>
+
+  <script>
+    // Simulated AI quiz generator function
+    function generateQuizFromTopic(topic) {
+      // For demo, return a fixed quiz for any topic
+      return [
+        {
+          question: "What is the main subject of " + topic + "?",
+          options: ['Option A', 'Option B', 'Option C', 'Option D'],
+          answer: 'Option A'
+        },
+        {
+          question: "Which of the following is related to " + topic + "?",
+          options: ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
+          answer: 'Option 2'
+        },
+        {
+          question: "How would you describe " + topic + "?",
+          options: ['Description 1', 'Description 2', 'Description 3', 'Description 4'],
+          answer: 'Description 3'
+        }
+      ];
+    }
+
+    // Elements
+    const topicInput = document.getElementById('topic-input');
+    const generateBtn = document.getElementById('generate-btn');
+    const generateStatus = document.getElementById('generate-status');
+    const quizSection = document.getElementById('quiz-section');
+    const quizForm = document.getElementById('quiz-form');
+    const submitQuizBtn = document.getElementById('submit-quiz-btn');
+    const restartQuizBtn = document.getElementById('restart-quiz-btn');
+    const quizResult = document.getElementById('quiz-result');
+
+    const createQuizForm = document.getElementById('create-quiz-form');
+    const customQuestionsContainer = document.getElementById('custom-questions-container');
+    const addQuestionBtn = document.getElementById('add-question-btn');
+    const saveStatus = document.getElementById('save-status');
+    const userQuizzesList = document.getElementById('user-quizzes-list');
+
+    let currentQuiz = [];
+    let userAnswers = [];
+
+    // Generate quiz UI
+    function renderQuiz(quiz) {
+      quizForm.innerHTML = '';
+      quiz.forEach(function(q, i) {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'border border-gray-300 rounded p-4';
+
+        const questionTitle = document.createElement('p');
+        questionTitle.className = 'font-semibold mb-2';
+        questionTitle.textContent = "Q" + (i + 1) + ": " + q.question;
+        questionDiv.appendChild(questionTitle);
+
+        q.options.forEach(function(option, idx) {
+          const optionId = "q" + i + "_option_" + idx;
+          const label = document.createElement('label');
+          label.className = 'block mb-1 cursor-pointer';
+
+          const input = document.createElement('input');
+          input.type = 'radio';
+          input.name = "question_" + i;
+          input.value = option;
+          input.id = optionId;
+          input.className = 'mr-2';
+
+          label.appendChild(input);
+          label.appendChild(document.createTextNode(option));
+          questionDiv.appendChild(label);
+        });
+
+        quizForm.appendChild(questionDiv);
+      });
+    }
+
+    // Handle generate quiz button click
+    generateBtn.addEventListener('click', () => {
+      const topic = topicInput.value.trim();
+      if (!topic) {
+        generateStatus.textContent = 'Please enter a topic.';
+        return;
+      }
+      generateStatus.textContent = 'Generating quiz...';
+      // Simulate AI call delay
+      setTimeout(() => {
+        currentQuiz = generateQuizFromTopic(topic);
+        userAnswers = new Array(currentQuiz.length).fill(null);
+        renderQuiz(currentQuiz);
+        quizSection.classList.remove('hidden');
+        generateStatus.textContent = '';
+        quizResult.textContent = '';
+      }, 1000);
+    });
+
+    // Handle quiz submission
+    submitQuizBtn.addEventListener('click', function() {
+      const answers = [];
+      let allAnswered = true;
+      currentQuiz.forEach(function(q, i) {
+        const selected = quizForm.querySelector("input[name='question_" + i + "']:checked");
+        if (selected) {
+          answers[i] = selected.value;
+        } else {
+          allAnswered = false;
+        }
+      });
+      if (!allAnswered) {
+        alert('Please answer all questions before submitting.');
+        return;
+      }
+      let score = 0;
+      currentQuiz.forEach(function(q, i) {
+        if (answers[i] === q.answer) {
+          score++;
+        }
+      });
+      quizResult.textContent = "You scored " + score + " out of " + currentQuiz.length + ".";
+    });
+
+    // Handle quiz restart
+    restartQuizBtn.addEventListener('click', () => {
+      renderQuiz(currentQuiz);
+      quizResult.textContent = '';
+    });
+
+    // Create quiz UI helpers
+    function createQuestionInput(index) {
+      const questionDiv = document.createElement('div');
+      questionDiv.className = 'border border-gray-300 rounded p-4';
+
+      const questionLabel = document.createElement('label');
+      questionLabel.textContent = "Question " + (index + 1) + ":";
+      questionLabel.className = 'block font-semibold mb-1';
+      questionDiv.appendChild(questionLabel);
+
+      const questionInput = document.createElement('input');
+      questionInput.type = 'text';
+      questionInput.className = 'w-full border border-gray-300 rounded px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+      questionInput.placeholder = 'Enter question text';
+      questionInput.required = true;
+      questionInput.name = "custom_question_" + index;
+      questionDiv.appendChild(questionInput);
+
+      const optionsContainer = document.createElement('div');
+      optionsContainer.className = 'space-y-1 mb-2';
+
+      for (let i = 0; i < 4; i++) {
+        const optionLabel = document.createElement('label');
+        optionLabel.className = 'block cursor-pointer';
+
+        const optionInput = document.createElement('input');
+        optionInput.type = 'text';
+        optionInput.className = 'w-full border border-gray-300 rounded px-3 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+        optionInput.placeholder = "Option " + (i + 1);
+        optionInput.required = true;
+        optionInput.name = "custom_question_" + index + "_option_" + i;
+
+        optionLabel.appendChild(optionInput);
+        optionsContainer.appendChild(optionLabel);
+      }
+      questionDiv.appendChild(optionsContainer);
+
+      const answerLabel = document.createElement('label');
+      answerLabel.textContent = 'Correct Answer (exactly as one of the options):';
+      answerLabel.className = 'block font-semibold mb-1';
+      questionDiv.appendChild(answerLabel);
+
+      const answerInput = document.createElement('input');
+      answerInput.type = 'text';
+      answerInput.className = 'w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+      answerInput.placeholder = 'Correct answer text';
+      answerInput.required = true;
+      answerInput.name = "custom_question_" + index + "_answer";
+      questionDiv.appendChild(answerInput);
+
+      return questionDiv;
+    }
+
+    // Add new question input
+    addQuestionBtn.addEventListener('click', () => {
+      const questionCount = customQuestionsContainer.children.length;
+      const newQuestionInput = createQuestionInput(questionCount);
+      customQuestionsContainer.appendChild(newQuestionInput);
+    });
+
+    // Save custom quiz
+    createQuizForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = document.getElementById('custom-quiz-title').value.trim();
+      if (!title) {
+        alert('Please enter a quiz title.');
+        return;
+      }
+      const questions = [];
+      const questionDivs = customQuestionsContainer.children;
+      if (questionDivs.length === 0) {
+        alert('Please add at least one question.');
+        return;
+      }
+      for (let i = 0; i < questionDivs.length; i++) {
+        const qDiv = questionDivs[i];
+      const questionText = qDiv.querySelector("input[name='custom_question_" + i + "']").value.trim();
+      const options = [];
+      for (let j = 0; j < 4; j++) {
+        const optionText = qDiv.querySelector("input[name='custom_question_" + i + "_option_" + j + "']").value.trim();
+        options.push(optionText);
+      }
+      const answerText = qDiv.querySelector("input[name='custom_question_" + i + "_answer']").value.trim();
+      if (!questionText || options.some(opt => !opt) || !answerText) {
+        alert('Please fill out all fields for each question.');
+        return;
+      }
+      if (!options.includes(answerText)) {
+        alert('Correct answer must exactly match one of the options.');
+        return;
+      }
+      questions.push({ question: questionText, options, answer: answerText });
+      }
+      const quiz = { title, questions };
+      saveQuiz(quiz);
+      saveStatus.textContent = 'Quiz saved successfully!';
+      createQuizForm.reset();
+      customQuestionsContainer.innerHTML = '';
+      loadUserQuizzes();
+      setTimeout(() => {
+        saveStatus.textContent = '';
+      }, 3000);
+    });
+
+    // Save quiz to localStorage
+    function saveQuiz(quiz) {
+      const quizzes = JSON.parse(localStorage.getItem('userQuizzes') || '[]');
+      quizzes.push(quiz);
+      localStorage.setItem('userQuizzes', JSON.stringify(quizzes));
+    }
+
+    // Load user quizzes list
+    function loadUserQuizzes() {
+      userQuizzesList.innerHTML = '';
+      const quizzes = JSON.parse(localStorage.getItem('userQuizzes') || '[]');
+      if (quizzes.length === 0) {
+        userQuizzesList.innerHTML = '<li>No saved quizzes yet.</li>';
+        return;
+      }
+      quizzes.forEach((quiz, index) => {
+        const li = document.createElement('li');
+        const quizLink = document.createElement('button');
+        quizLink.textContent = quiz.title;
+        quizLink.className = 'text-indigo-600 underline cursor-pointer hover:text-indigo-800';
+        quizLink.addEventListener('click', () => {
+          currentQuiz = quiz.questions;
+          renderQuiz(currentQuiz);
+          quizSection.classList.remove('hidden');
+          quizResult.textContent = '';
+        });
+        li.appendChild(quizLink);
+        userQuizzesList.appendChild(li);
+      });
+    }
+
+    // Initialize
+    loadUserQuizzes();
+  </script>
+</body>
+</html>
