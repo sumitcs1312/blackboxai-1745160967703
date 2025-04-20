@@ -17,77 +17,34 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Code:
         ZipFile: |
-          const { Configuration, OpenAIApi } = require("openai");
-
-          const configuration = new Configuration({
-            apiKey: process.env.OPENAI_API_KEY
-          });
-          const openai = new OpenAIApi(configuration);
-
-          exports.handler = async (event) => {
-            try {
-              const body = JSON.parse(event.body);
-              const topic = body.topic;
-
-              if (!topic) {
-                return {
-                  statusCode: 400,
-                  body: JSON.stringify({ error: "Topic is required" })
-                };
-              }
-
-              const prompt = "Generate a quiz with 3 questions on the topic: \"" + topic + "\". Provide each question with 4 options and indicate the correct answer.";
-
-              const completion = await openai.createCompletion({
-                model: "text-davinci-003",
-                prompt: prompt,
-                max_tokens: 500,
-                temperature: 0.7
-              });
-
-              const quizText = completion.data.choices[0].text.trim();
-
-              function parseQuizText(text) {
-                const questions = [];
-                const lines = text.split("\n").filter(line => line.trim() !== "");
-                let currentQuestion = null;
-
-                lines.forEach(line => {
-                  if (/^\d+\./.test(line)) {
-                    if (currentQuestion) {
-                      questions.push(currentQuestion);
-                    }
-                    currentQuestion = { question: line.replace(/^\d+\.\s*/, ""), options: [], answer: "" };
-                  } else if (/^[A-D]\./.test(line)) {
-                    currentQuestion.options.push(line.replace(/^[A-D]\.\s*/, ""));
-                  } else if (/^Answer:/i.test(line)) {
-                    currentQuestion.answer = line.replace(/^Answer:\s*/i, "");
-                  }
-                });
-                if (currentQuestion) {
-                  questions.push(currentQuestion);
-                }
-                return questions;
-              }
-
-              const quiz = parseQuizText(quizText);
-
-              return {
-                statusCode: 200,
-                body: JSON.stringify({ quiz })
-              };
-            } catch (error) {
-              console.error(error);
-              return {
-                statusCode: 500,
-                body: JSON.stringify({ error: "Internal Server Error" })
-              };
-            }
-          };
+          // Lambda function code is not included here. Please upload your code package separately.
       Environment:
         Variables:
           OPENAI_API_KEY: !Ref OpenAIAPIKey
       Timeout: 10
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: AIQuizGeneratorLambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaBasicExecution
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
 
   QuizApi:
     Type: AWS::ApiGatewayV2::Api
